@@ -1,0 +1,398 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Tsuna'Game</title>
+		<meta property="og:image" content="http://tsunamines.olympe.in/img/fbMnew.png" />
+		<link rel="shortcut icon" type="image/x-icon" href="img/logo.ico" />
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<script type="text/javascript" src="js/phaser.min.js"></script>
+		<link rel="stylesheet" href="style.css"/>
+	</head>
+
+	<body bgcolor="black">
+		<div id="tsunaGame" align="center" style="display: inline-block;">
+			<script type="text/javascript">
+				var width = window.innerWidth;
+				if(width>800){width=800};
+				var height = 3*width/4;
+				var game = new Phaser.Game(width, height, Phaser.CANVAS, 'tsunaGame', { preload: preload, create: create, update: update, render: render});
+
+				var vagues, cursors, player, bords, sable, logo, count, over, tsunami, scoreText,
+						loadText, loadNumber = 0, score= 0, debugText, button, play=false,
+						pointer, finalText, replayText, bougeIlot=false, textSize=32*width/800, parsedScore;
+
+				function preload() {
+					game.load.onLoadStart.add(loadStart, this);
+					game.load.onFileComplete.add(fileComplete, this);
+					game.load.image('background', 'img/backgroundM.png');
+					game.load.image("pancarte", "img/pancarteM.png");
+					//game.load.image('happy', 'img/happy.png');
+					game.load.spritesheet('happy', 'img/happyM.png',361,446,1);
+					game.load.spritesheet('minesja', 'img/minesja.png',361,446,1);
+					game.load.spritesheet('dynamines', 'img/dynamines.png',361,446,1);
+					game.load.spritesheet('minorite', 'img/minorite.png',361,446,1);
+					game.load.image('vague', "img/vagueM.png");
+					game.load.image("logo", "img/logoM.png");
+					game.load.image("tsunami","img/tsunami3.png");
+					game.load.image("sable", "img/sableM.png");
+					game.load.image("jouer", "img/jouerM.png");
+					game.load.image("cadre", "img/cadreM.png");
+					game.load.image("wins", "img/wins2.png");
+					game.load.image("escargot", "img/vagues/escargot.png");
+					game.load.image("saucisson", "img/vagues/saucisson.png");
+					game.load.image("gruyere", "img/vagues/gruyere.png");
+					game.load.image("patate", "img/vagues/patate.png");
+					game.load.image("pasteque", "img/vagues/pasteque.png");
+					game.load.image("bouffe", "img/vagues/bouffe.png");
+					game.load.image("mer", "img/vagues/mer.png");
+				}
+
+				function loadStart(){
+					loadText = game.add.text(game.world.centerX, game.world.centerY, 'Chargement... 0%', { fill: '#ffffff' });
+					loadText.anchor.x=0.5;
+					loadText.anchor.y=0.5;
+				}
+
+				function fileComplete(){
+					loadNumber+=parseInt(100/20);
+					loadText.text = "Chargement... "+loadNumber;
+				}
+
+				function create() {
+					over = false;
+					count = 0;
+					tsunami = null;
+
+					game.add.sprite(0,0,'background');
+					var pancarte = game.add.sprite(0, 0,'pancarte');
+					pancarte.anchor.x=0.5;
+					pancarte.anchor.y=0.5;
+					pancarte.x=pancarte.width/2;
+					pancarte.y=pancarte.height/2;
+					pancarte.height*=height/600;
+					pancarte.width*=width/800;
+
+					sable = game.add.sprite(game.world.centerX, game.world.centerY, 'sable');
+					sable.anchor.x=0.5;
+					sable.anchor.y=0.5;
+					sable.width*=width/800;
+					sable.height*=height/600;
+					game.physics.arcade.enable(sable);
+
+					var rnd = Math.random(); // [0;1[
+					if(rnd<0.4){
+						player = game.add.sprite(game.world.centerX, game.world.centerY, 'minesja');
+					}
+					else if(rnd>=0.4 && rnd<0.8){
+						player = game.add.sprite(game.world.centerX, game.world.centerY, 'dynamines');
+					}
+					else if(rnd>=0.8 && rnd<0.9){
+						player = game.add.sprite(game.world.centerX, game.world.centerY, 'minorite');
+					}
+					else{
+						player = game.add.sprite(game.world.centerX, game.world.centerY, 'happy');
+					}
+					player.anchor.x=0.5;
+					player.anchor.y=0.5;
+					player.width = (player.width/6)*width/800;
+					player.height = (player.height/6)*height/600;
+					game.physics.arcade.enable(player);
+					player.body.setSize(300,300,1,6*height/600);
+					player.body.immovable = true;
+					player.body.maxVelocity.x=500;
+					player.body.maxVelocity.y=500;
+					//player.inputEnabled = true;
+					//player.input.enableDrag();
+
+					vagues = game.add.group();
+					//vagues.checkWorldBounds();
+
+					bords = game.add.group();
+
+					cursors = game.input.keyboard.createCursorKeys();
+
+					game.physics.arcade.overlap(player, vagues, gameOver, null, this);
+
+					scoreText = game.add.text(pancarte.x, pancarte.y+15*height/600, count, { font: textSize+'px Arial', fill: '#000' });
+					scoreText.anchor.x=0.5;
+					scoreText.anchor.y=0.5;
+					scoreText.width = scoreText.width*width/800;
+					scoreText.height = scoreText.height*height/600;
+					scoreText.align = 'center';
+
+					debugText = game.add.text(40*width/50, 7*height/75, '', { font: textSize+'px Arial', fill: '#000' });
+
+					cadre = game.add.sprite(game.world.centerX, game.world.centerY, 'cadre');
+					cadre.anchor.x=0.5;
+					cadre.anchor.y=0.5;
+					cadre.width=game.world.width/1.1;
+					cadre.height=game.world.height/4;
+
+					logo = game.add.sprite(game.world.centerX, game.world.centerY, 'logo');
+					logo.anchor.x=0.5;
+					logo.anchor.y=0.5;
+					logo.width*=(width/800)/2;
+					logo.height*=(height/600)/2;
+					logo.y = 100*height/600;
+
+					introT = "Aide le petit listeux à rester sur son îlot.\n" +
+					"Utilise les flèches du clavier pour te diriger.\n" +
+					"Attention aux vagues des Tsuna'Mines";
+					introText = game.add.text(game.world.centerX, game.world.centerY, introT, {font: textSize+'px Arial', fill: '#ffbf40' });
+					introText.anchor.x=0.5;
+					introText.anchor.y=0.5;
+
+					button = game.add.button(0, 0, "jouer", actionOnClick, this);
+					button.anchor.x=0.5;
+					button.anchor.y=0.5;
+					button.width*=width/800;
+					button.height*=height/600;
+					button.x=game.world.centerX;
+					button.y=game.world.centerY+cadre.height;
+
+					//pointer = game.input.addPointer();
+				}
+
+				function actionOnClick(){
+					play = true;
+					button.destroy();
+					cadre.destroy();
+					introText.destroy();
+					logo.destroy();
+				}
+
+				function update() {
+					if (over == false && play == true) {
+						count++;
+						// Tricheur !
+						scoreText.text = parseInt(score);
+
+						//debugText.text = game.input.x; //survol de la souris
+
+						//ralentir à chaque tour
+						//player.body.velocity.x*=2/3;
+						//player.body.velocity.y*=2/3;
+
+						if (cursors.down.isDown) {
+							if (player.body.velocity.y <= 0) {
+								player.body.velocity.y += 10 * height / 600;
+							}
+							player.body.velocity.y += 10 * height / 600;
+						}
+						if (cursors.up.isDown) {
+							if (player.body.velocity.y >= 0) {
+								player.body.velocity.y -= 10 * height / 600;
+							}
+							player.body.velocity.y -= 10 * height / 600;
+						}
+						if (cursors.left.isDown) {
+							if (player.body.velocity.x >= 0) {
+								player.body.velocity.x -= 10 * width / 800;
+							}
+							player.body.velocity.x -= 10 * width / 800;
+						}
+						if (cursors.right.isDown) {
+							if (player.body.velocity.x <= 0) {
+								player.body.velocity.x += 10 * width / 800;
+							}
+							player.body.velocity.x += 10 * width / 800;
+						}
+
+						//game.input.onDown.add(doSomething, this);
+
+						//limiter la vitesse
+						if (player.body.velocity.x > 200*width/800) {
+							player.body.velocity.x = 200*width/800;
+						}
+						else if (player.body.velocity.x < -200*width/800) {
+							player.body.velocity.x = -200*width/800;
+						}
+						if (player.body.velocity.y > 200*height/600) {
+							player.body.velocity.y = 200*height/600;
+						}
+						if (player.body.velocity.y < -200*height/600) {
+							player.body.velocity.y = -200*height/600;
+						}
+
+						//tester les bords
+						if ((player.body.velocity.x > 0 && player.body.x >= game.world.width - 50 * width / 800)
+								|| (player.body.velocity.x < 0 && player.body.x <= 0)) {
+							player.body.velocity.x = 0;
+						}
+						if ((player.body.velocity.y > 0 && player.body.y >= game.world.height - 50 * height / 600)
+								|| (player.body.velocity.y < 0 && player.body.y <= 0)) {
+							player.body.velocity.y = 0;
+						}
+
+						if (count % (50 - parseInt(count / 750)) == 0) {
+							//var nbVagues = parseInt(score/30 + 1);
+							var nbVagues = 1;
+							parsedScore = parseInt(score);
+							for (var i = 0; i < nbVagues; i++) {
+								if(parsedScore==30 || parsedScore == 60 || parsedScore==100 || parsedScore==170 || parsedScore ==250 || parsedScore ==350 || parsedScore==500){
+									createVagueSpeciale();
+								}
+								else {
+									special = false;
+									createVague("vague");
+								}
+							}
+						}
+
+						for (i = 0; i < vagues.length; i++) {
+							if (vagues.getAt(i).body.x <= -100 * width / 800) {
+								vagues.remove(vagues.getAt(i), true, true);
+							}
+						}
+
+						//deplace l'ilot
+						if (parseInt(score) % 5 == 0 && parseInt(score)!=0) {
+							if (!bougeIlot) {
+								bougeIlot = true;
+								sable.body.x = game.world.centerX + (Math.random()-0.5)*300*width/800;
+								sable.body.y = game.world.centerY + (Math.random()-0.5)*200*height/800;
+							}
+						}
+						else{
+							bougeIlot = false;
+						}
+
+					//collisions
+					game.physics.arcade.overlap(player, vagues, gameOver, null, this);
+					game.physics.arcade.overlap(player, sable, incrementScore, null, this);
+					}
+					else if(over){ //if over
+						if(tsunami.body.x<=0){
+							tsunami.body.velocity=0;
+							showLogo();
+						}
+					}
+				}
+
+				/*
+				function doSomething(pointer){
+					debugText.text = game.input.pointer1.clientX;
+				}
+				*/
+
+				function incrementScore(){
+					// Tricheur !
+					score+=0.02;
+				}
+
+				function createVagueSpeciale(){
+					if(!special) {
+						if (parsedScore == 30) {
+							createVague("escargot");
+						}
+						else if (parsedScore == 60) {
+							createVague("saucisson");
+						}
+						else if (parsedScore == 100) {
+							createVague("gruyere");
+						}
+						else if (parsedScore == 170) {
+							createVague("pasteque");
+						}
+						else if (parsedScore == 250) {
+							createVague("patate");
+						}
+						else if (parsedScore == 350) {
+							createVague("bouffe");
+						}
+						else if (parsedScore == 500) {
+							createVague("mer");
+						}
+						else {
+							createVague("vague");
+						}
+					}
+					else{
+						createVague("vague");
+					}
+					special=true;
+				}
+
+				function createVague(nom){
+					var vague;
+					var rnd = Math.random(); // [0;1[
+					var yPop = parseInt(rnd*7) * parseInt(game.world.height/7);
+
+					vague = vagues.create(game.world.width + 100*width/800, yPop, nom);
+					vague.width = vague.width*width/800;
+					vague.height = vague.height*height/600;
+					//vague.width += (count / 20);
+					//vague.height += (count / 20);
+					//vague.body.setSize(50 + count / 20, 80 + count / 20, 30, 20);
+					game.physics.arcade.enable(vague);
+					vague.body.setSize(80*width/800,80*height/600,20,20);
+					vague.body.velocity.x = -175*width/800;
+					vague.body.immovable = true;
+				}
+
+				function render() {
+					/*
+					game.debug.body(vagues);
+					vagues.forEachAlive(renderGroup, this);
+					game.debug.body(player);
+					game.debug.body(sable);
+					*/
+				}
+
+				function renderGroup(member) {
+					game.debug.body(member);
+				}
+
+				function gameOver (player, vague){
+					if(over==false) { //Pour ne pas le faire en boucle
+						over = true;
+						player.body.velocity.y=0;
+						player.body.velocity.x=-175*width/800;
+						player.body.allowRotation=true;
+						player.body.angularVelocity += 200;
+						tsunami = game.add.sprite(game.world.width, 50*height/600, 'tsunami');
+						tsunami.height*=2*height/600;
+						game.physics.arcade.enable(tsunami);
+						tsunami.body.velocity.x = -250*width/800;
+						tsunami.body.immovable = true;
+					}
+				}
+
+				function showLogo(){
+					tsunami.destroy();
+					vagues.destroy();
+					player.destroy();
+					sable.destroy();
+
+					cadre = game.add.sprite(game.world.centerX, game.world.centerY, 'cadre');
+					cadre.anchor.x=0.5;
+					cadre.anchor.y=0.5;
+					cadre.width=game.world.width/1.2;
+					cadre.height=game.world.height/1.5;
+
+					logo = game.add.sprite(game.world.centerX, game.world.centerY, 'wins');
+					logo.anchor.x=0.5;
+					logo.anchor.y=0.5;
+					logo.width*=(width/800)/2;
+					logo.height*=(height/600)/2;
+					logo.y = 250*height/600;
+
+					finalText = game.add.text(game.world.centerX, game.world.centerY+logo.height/2, introT, {font: textSize+'px Arial', fill: '#00FFCC' });
+					finalText.text = "Ton score : "+parseInt(score);
+					finalText.anchor.x=0.5;
+					finalText.anchor.y=0.5;
+
+					replayText = game.add.text(game.world.centerX, game.world.centerY+logo.height/2+50*height/600, introT, {font: textSize+'px Arial', fill: '#ffbf40' });
+					replayText.text = "Appuie sur F5 pour recommencer.";
+					replayText.anchor.x=0.5;
+					replayText.anchor.y=0.5;
+				}
+
+			</script>
+		</div>
+		<div id="rightPart" style="display: inline-block;">
+			<a href="http://www.compteurdevisite.com" title="compteur"><img src="http://counter1.allfreecounter.com/private/compteurdevisite.php?c=0e97d39ea7869551789601bdcfb711c2" border="0" title="compteur" alt="compteur" style="display: block;"></a>
+		</div>
+	</body>
+</html>
